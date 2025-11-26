@@ -168,6 +168,7 @@ const Controller = () => {
           handleRemoveChannel={handleRemoveChannel}
           handleColorSelect={handleColorSelect}
           isLoading={isChannelLoading[i]}
+          channelIndex={selections[i].c}
         />
       </Grid>
     );
