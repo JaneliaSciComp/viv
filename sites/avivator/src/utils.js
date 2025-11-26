@@ -240,8 +240,10 @@ export async function createLoader(
       // extract metadata into OME-XML-like form
       const metadata = {
         Pixels: {
-          Channels: channels.map(c => ({ Name: c.label, SamplesPerPixel: 1 }))
-        }
+          Channels: channels.map((c) => ({ Name: c.label, SamplesPerPixel: 1 })),
+        },
+        // Preserve full OMERO metadata
+        omero: res.metadata?.omero,
       };
       source = { data: res.data, metadata };
     }
@@ -361,6 +363,52 @@ export function hexToRgb(hex) {
   // https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result.map(d => Number.parseInt(d, 16)).slice(1);
+}
+
+/**
+ * Extracts domains and contrastLimits from OMERO metadata if available.
+ * @param {Object} metadata - The metadata object that may contain OMERO info
+ * @param {number} numSelections - Number of channel selections
+ * @returns {{ domains: number[][], contrastLimits: number[][], colors: number[][] } | null}
+ */
+export function getOmeroWindowData(metadata, numSelections) {
+  const omeroChannels = metadata?.omero?.channels;
+  if (!omeroChannels || !Array.isArray(omeroChannels)) {
+    return null;
+  }
+
+  const domains = [];
+  const contrastLimits = [];
+  const colors = [];
+
+  for (let i = 0; i < numSelections; i++) {
+    const channel = omeroChannels[i];
+    if (!channel?.window) {
+      // If any channel is missing window data, return null to fall back to computed stats
+      return null;
+    }
+
+    const { window, color } = channel;
+
+    // Use window.min/max for domain, fall back to start/end if not present
+    const domainMin = window.min !== undefined ? window.min : window.start;
+    const domainMax = window.max !== undefined ? window.max : window.end;
+    domains.push([domainMin, domainMax]);
+
+    // Use window.start/end for contrastLimits
+    contrastLimits.push([window.start, window.end]);
+
+    // Convert hex color to RGB array
+    if (color) {
+      const rgb = hexToRgb(color);
+      colors.push(rgb);
+    } else {
+      // Will be handled by caller with fallback
+      colors.push(null);
+    }
+  }
+
+  return { domains, contrastLimits, colors };
 }
 
 export function range(length) {

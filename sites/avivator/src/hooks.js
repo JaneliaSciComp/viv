@@ -16,6 +16,7 @@ import {
   createLoader,
   getBoundingCube,
   getMultiSelectionStats,
+  getOmeroWindowData,
   guessRgb,
   isInterleaved
 } from './utils';
@@ -140,20 +141,31 @@ export const useImage = source => {
         }
         useViewerStore.setState({ useColormap: false, useLens: false });
       } else {
-        const stats = await getMultiSelectionStats({
-          loader,
-          selections: newSelections,
-          use3d: false
-        });
-        newDomains = stats.domains;
-        newContrastLimits = stats.contrastLimits;
-        // If there is only one channel, use white.
-        newColors =
-          newDomains.length === 1
-            ? [[255, 255, 255]]
-            : newDomains.map(
-                (_, i) => Channels[i]?.Color?.slice(0, -1) ?? COLOR_PALLETE[i]
-              );
+        // Try to get domains and contrastLimits from OMERO metadata first
+        const omeroData = getOmeroWindowData(metadata, newSelections.length);
+
+        if (omeroData) {
+          // Use OMERO window data (min/max and start/end)
+          newDomains = omeroData.domains;
+          newContrastLimits = omeroData.contrastLimits;
+          // Use OMERO colors, fall back to palette
+          newColors = omeroData.colors.map(
+            (color, i) => color ?? COLOR_PALLETE[i]
+          );
+        } else {
+          const stats = await getMultiSelectionStats({
+            loader,
+            selections: newSelections,
+            use3d: false
+          });
+          newDomains = stats.domains;
+          newContrastLimits = stats.contrastLimits;
+          // If there is only one channel, use white.
+          newColors =
+            newDomains.length === 1
+              ? [[255, 255, 255]]
+              : newDomains.map((_, i) => COLOR_PALLETE[i]);
+        }
         useViewerStore.setState({
           useLens: channelOptions.length !== 1,
           useColormap: true
