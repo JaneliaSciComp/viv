@@ -57,35 +57,24 @@ function ChannelController({
   color,
   handleRemoveChannel,
   handleColorSelect,
-  isLoading,
-  channelIndex
+  isLoading
 }) {
   const loader = useLoader();
   const colormap = useImageSettingsStore(store => store.colormap);
-  const [channelOptions, useLinkedView, use3d, metadata] = useViewerStore(
+  const [channelOptions, useLinkedView, use3d] = useViewerStore(
     useShallow(store => [
       store.channelOptions,
       store.useLinkedView,
-      store.use3d,
-      store.metadata
+      store.use3d
     ])
   );
   const rgbColor = toRgb(colormap, color);
-  const getMinMax = ({ domain: d, mode, loader: l, channelIndex: chIdx }) => {
+  const getMinMax = ({ domain: d, mode, loader: l }) => {
     switch (mode) {
       case 'max/min': {
         return d;
       }
       case 'full': {
-        // Try to use OMERO metadata if available
-        const omeroChannels = metadata?.omero?.channels;
-        if (omeroChannels && omeroChannels[chIdx]?.window) {
-          const { window } = omeroChannels[chIdx];
-          const min = window.min !== undefined ? window.min : window.start;
-          const max = window.max !== undefined ? window.max : window.end;
-          return [min, max];
-        }
-        // Fall back to dtype-based range
         const { dtype } = l[0];
         const { max } = DTYPE_VALUES[dtype];
         // Min is 0 for unsigned, or the negative of the max for signed dtypes.
@@ -98,7 +87,7 @@ function ChannelController({
     }
   };
   const [mode, setMode] = React.useState('max/min');
-  const [left, right] = getMinMax({ domain, mode, loader, channelIndex });
+  const [left, right] = getMinMax({ domain, mode, loader });
   // If the min/right range is and the dtype is float, make the step size smaller so contrastLimits are smoother.
   const { dtype } = loader[0];
   const isFloat = dtype === 'Float32' || dtype === 'Float64';
