@@ -15,9 +15,10 @@ import {
   useChannelsStore,
   useImageSettingsStore,
   useLoader,
+  useMetadata,
   useViewerStore
 } from '../../../state';
-import { getBoundingCube, getMultiSelectionStats, range } from '../../../utils';
+import { getBoundingCube, getMultiSelectionStatsWithOmero, range } from '../../../utils';
 
 function formatBytes(bytes, decimals = 2) {
   if (bytes === 0) return '0 Bytes';
@@ -85,6 +86,7 @@ function VolumeButton() {
     useShallow(store => [store.selections, store.setPropertiesForChannel])
   );
   const loader = useLoader();
+  const metadata = useMetadata();
   const [
     use3d,
     toggleUse3d,
@@ -125,19 +127,22 @@ function VolumeButton() {
             useViewerStore.setState({
               isChannelLoading: Array(selections.length).fill(true)
             });
-            getMultiSelectionStats({ loader, selections, use3d: !use3d }).then(
-              ({ domains, contrastLimits }) => {
-                range(selections.length).forEach((channel, j) =>
-                  setPropertiesForChannel(channel, {
-                    domains: domains[j],
-                    contrastLimits: contrastLimits[j]
-                  })
-                );
-                useViewerStore.setState({
-                  isChannelLoading: Array(selections.length).fill(false)
-                });
-              }
-            );
+            getMultiSelectionStatsWithOmero(
+              metadata,
+              loader,
+              selections,
+              !use3d
+            ).then(({ domains, contrastLimits }) => {
+              range(selections.length).forEach((channel, j) =>
+                setPropertiesForChannel(channel, {
+                  domains: domains[j],
+                  contrastLimits: contrastLimits[j]
+                })
+              );
+              useViewerStore.setState({
+                isChannelLoading: Array(selections.length).fill(false)
+              });
+            });
           }
         }}
         fullWidth
@@ -174,11 +179,12 @@ function VolumeButton() {
                               zSlice
                             });
                             toggle();
-                            getMultiSelectionStats({
+                            getMultiSelectionStatsWithOmero(
+                              metadata,
                               loader,
                               selections,
-                              use3d: true
-                            }).then(({ domains, contrastLimits }) => {
+                              true
+                            ).then(({ domains, contrastLimits }) => {
                               range(selections.length).forEach((channel, j) =>
                                 setPropertiesForChannel(channel, {
                                   domains: domains[j],

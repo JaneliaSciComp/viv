@@ -9,9 +9,10 @@ import {
   useChannelsStore,
   useImageSettingsStore,
   useLoader,
+  useMetadata,
   useViewerStore
 } from '../../../state';
-import { getMultiSelectionStats, range } from '../../../utils';
+import { getMultiSelectionStatsWithOmero, range } from '../../../utils';
 
 export default function GlobalSelectionSlider(props) {
   const { size, label } = props;
@@ -19,6 +20,7 @@ export default function GlobalSelectionSlider(props) {
     useShallow(store => [store.selections, store.setPropertiesForChannel])
   );
   const loader = useLoader();
+  const metadata = useMetadata();
   const globalSelection = useViewerStore(store => store.globalSelection);
   const changeSelection = debounce(
     (_event, newValue) => {
@@ -29,11 +31,12 @@ export default function GlobalSelectionSlider(props) {
         ...sel,
         [label]: newValue
       }));
-      getMultiSelectionStats({
+      getMultiSelectionStatsWithOmero(
+        metadata,
         loader,
-        selections: newSelections,
-        use3d: false
-      }).then(({ domains, contrastLimits }) => {
+        newSelections,
+        false
+      ).then(({ domains, contrastLimits }) => {
         unstable_batchedUpdates(() => {
           range(newSelections.length).forEach((channel, j) =>
             setPropertiesForChannel(channel, {
