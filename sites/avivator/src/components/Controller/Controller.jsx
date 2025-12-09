@@ -14,7 +14,7 @@ import {
   useMetadata,
   useViewerStore
 } from '../../state';
-import { getSingleSelectionStats, guessRgb, useWindowSize } from '../../utils';
+import { getSingleSelectionStatsWithOmero, guessRgb, useWindowSize } from '../../utils';
 import AddChannel from './components/AddChannel';
 import CameraOptions from './components/CameraOptions';
 import ChannelController from './components/ChannelController';
@@ -112,11 +112,13 @@ const Controller = () => {
         c: channelOptions.indexOf(e.target.value)
       };
       setIsChannelLoading(i, true);
-      getSingleSelectionStats({
+      getSingleSelectionStatsWithOmero(
+        metadata,
+        selection.c,
         loader,
         selection,
         use3d
-      }).then(({ domain, contrastLimits: newContrastLimit }) => {
+      ).then(({ domain, contrastLimits: newContrastLimit }) => {
         const {
           Pixels: { Channels }
         } = metadata;

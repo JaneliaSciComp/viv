@@ -502,6 +502,50 @@ export const getMultiSelectionStats = async ({ loader, selections, use3d }) => {
   return { domains, contrastLimits };
 };
 
+export async function getSingleSelectionStatsWithOmero(
+  metadata,
+  channelIndex,
+  loader,
+  selection,
+  use3d
+) {
+  // Try OMERO metadata first
+  const omeroChannels = metadata?.omero?.channels;
+  if (omeroChannels && omeroChannels[channelIndex]?.window) {
+    const { window } = omeroChannels[channelIndex];
+    const domainMin = window.min !== undefined ? window.min : window.start;
+    const domainMax = window.max !== undefined ? window.max : window.end;
+    const domain = [domainMin, domainMax];
+    const contrastLimits = [window.start, window.end];
+    return { domain, contrastLimits };
+  }
+
+  // Fall back to computing from data
+  return getSingleSelectionStats({ loader, selection, use3d });
+}
+
+export async function getMultiSelectionStatsWithOmero(
+  metadata,
+  loader,
+  selections,
+  use3d
+) {
+  const stats = await Promise.all(
+    selections.map(selection =>
+      getSingleSelectionStatsWithOmero(
+        metadata,
+        selection.c,
+        loader,
+        selection,
+        use3d
+      )
+    )
+  );
+  const domains = stats.map(stat => stat.domain);
+  const contrastLimits = stats.map(stat => stat.contrastLimits);
+  return { domains, contrastLimits };
+}
+
 // https://stackoverflow.com/a/11381730
 export function isMobileOrTablet() {
   let check = false;

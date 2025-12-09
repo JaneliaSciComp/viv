@@ -11,7 +11,7 @@ import {
   useMetadata,
   useViewerStore
 } from '../../../state';
-import { getSingleSelectionStats } from '../../../utils';
+import { getSingleSelectionStatsWithOmero } from '../../../utils';
 
 const AddChannel = () => {
   const [
@@ -43,11 +43,13 @@ const AddChannel = () => {
     let selection = Object.fromEntries(labels.map(l => [l, 0]));
     selection = { ...selection, ...globalSelection };
     const numSelectionsBeforeAdd = selections.length;
-    getSingleSelectionStats({
+    getSingleSelectionStatsWithOmero(
+      metadata,
+      selection.c,
       loader,
       selection,
       use3d
-    }).then(({ domain, contrastLimits }) => {
+    ).then(({ domain, contrastLimits }) => {
       setPropertiesForChannel(numSelectionsBeforeAdd, {
         domains: domain,
         contrastLimits,
